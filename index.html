@@ -462,7 +462,6 @@
 
         // --- ESTADO GLOBAL ---
         let db, auth, currentUser;
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'demo-restaurante-pro-v2';
         
         let localState = {
             role: null, // 'client', 'waiter', 'admin'
@@ -476,19 +475,24 @@
         };
 
         // --- INICIALIZACIÓN FIREBASE ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyDhxJT_Gc3KRyG8InmzIH8PFK9Nl1cHJpM",
+            authDomain: "menu-restaurantes-9b9d5.firebaseapp.com",
+            projectId: "menu-restaurantes-9b9d5",
+            storageBucket: "menu-restaurantes-9b9d5.firebasestorage.app",
+            messagingSenderId: "294723386682",
+            appId: "1:294723386682:web:9a4f765d31ad64ca01e403",
+            measurementId: "G-BJ547B4DZG"
+        };
+
         async function initApp() {
             try {
-                const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
                 const app = initializeApp(firebaseConfig);
                 auth = getAuth(app);
                 db = getFirestore(app);
 
-                // Regla 3: Autenticación obligatoria antes de queries
-                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                    await signInWithCustomToken(auth, __initial_auth_token);
-                } else {
-                    await signInAnonymously(auth);
-                }
+                // Autenticación anónima obligatoria para conectarse a tu proyecto
+                await signInAnonymously(auth);
 
                 onAuthStateChanged(auth, (user) => {
                     if (user) {
@@ -504,7 +508,7 @@
                     <div class="bg-red-50 text-red-600 p-6 rounded-2xl max-w-sm text-center border border-red-200">
                         <i class="ph-fill ph-warning-circle text-4xl mb-2"></i>
                         <h2 class="font-bold text-lg mb-1">Error de Conexión</h2>
-                        <p class="text-sm">Asegúrate de ejecutar esto en el entorno correcto con configuración de Firebase.</p>
+                        <p class="text-sm">Asegúrate de que tu proyecto de Firebase esté bien configurado.</p>
                     </div>`;
             }
         }
@@ -514,7 +518,7 @@
             if (!currentUser) return;
             
             // Colección Pública: Orders
-            const ordersRef = collection(db, 'artifacts', appId, 'public', 'data', 'orders');
+            const ordersRef = collection(db, 'orders');
             onSnapshot(ordersRef, (snapshot) => {
                 localState.orders = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 localState.orders.sort((a, b) => b.timestamp - a.timestamp);
@@ -522,7 +526,7 @@
             }, (error) => console.error("Error órdenes:", error));
 
             // Colección Pública: Reviews
-            const reviewsRef = collection(db, 'artifacts', appId, 'public', 'data', 'reviews');
+            const reviewsRef = collection(db, 'reviews');
             onSnapshot(reviewsRef, (snapshot) => {
                 localState.reviews = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 localState.reviews.sort((a, b) => b.timestamp - a.timestamp);
@@ -730,7 +734,7 @@
 
             try {
                 // Deshabilitar botón temporalmente visualmente si quisieramos...
-                const ordersRef = collection(db, 'artifacts', appId, 'public', 'data', 'orders');
+                const ordersRef = collection(db, 'orders');
                 await addDoc(ordersRef, newOrder);
                 
                 localState.cart = [];
@@ -748,7 +752,7 @@
         // --- LÓGICA DE RESEÑAS ---
         window.submitReview = async (type) => {
             try {
-                const reviewsRef = collection(db, 'artifacts', appId, 'public', 'data', 'reviews');
+                const reviewsRef = collection(db, 'reviews');
                 if (type === 'customer') {
                     const text = document.getElementById('customer-review-text').value.trim();
                     if(!text) return window.showToast("Escribe algo antes de enviar", "warning");
@@ -925,7 +929,7 @@
 
         window.updateOrderStatus = async (orderId, newStatus) => {
             try {
-                const orderRef = doc(db, 'artifacts', appId, 'public', 'data', 'orders', orderId);
+                const orderRef = doc(db, 'orders', orderId);
                 const updateData = { status: newStatus };
                 if (newStatus === 'Aceptada' || newStatus === 'Rechazada') {
                     updateData.waiter = localState.staffName;
